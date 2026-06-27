@@ -1,11 +1,12 @@
 {
   "name": "todo-app",
   "version": "1.0.0",
+  "description": "Ứng dụng Todo List với Node.js + SQLite",
   "main": "server.js",
   "dependencies": {
     "better-sqlite3": "^12.11.1",
     "cors": "^2.8.6",
-    "express": "^4.22.2",
+    "express": "^4.22.2"
   },
   "scripts": {
     "start": "node server.js"
