@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Danh sách công việc</title>
+
+  <!-- Google Fonts: Inter cho body, JetBrains Mono cho counter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ============================================
+       RESET & BIẾN CSS TOÀN CỤC
+    ============================================ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --clr-bg:        #F7F7F8;       /* Nền trang: xám rất nhạt */
+      --clr-surface:   #FFFFFF;       /* Nền card: trắng */
+      --clr-accent:    #4F46E5;       /* Màu chủ: indigo */
+      --clr-accent-h:  #4338CA;       /* Indigo đậm hơn khi hover */
+      --clr-text:      #111827;       /* Chữ chính: gần đen */
+      --clr-muted:     #6B7280;       /* Chữ phụ: xám */
+      --clr-done:      #9CA3AF;       /* Chữ task đã xong */
+      --clr-border:    #E5E7EB;       /* Viền nhẹ */
+      --clr-danger:    #EF4444;       /* Đỏ cho nút xóa */
+      --clr-danger-h:  #DC2626;       /* Đỏ đậm khi hover */
+      --radius:        10px;
+      --shadow:        0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-lg:     0 4px 16px rgba(79,70,229,.15);
+    }
+
+    /* ============================================
+       LAYOUT TỔNG THỂ
+    ============================================ */
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--clr-bg);
+      color: var(--clr-text);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 16px 80px;
+    }
+
+    /* Vùng chứa chính, giới hạn chiều rộng */
+    .container {
+      width: 100%;
+      max-width: 560px;
+    }
+
+    /* ============================================
+       PHẦN TIÊU ĐỀ & COUNTER
+    ============================================ */
+    .header {
+      margin-bottom: 28px;
+    }
+
+    .header h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--clr-text);
+    }
+
+    /* Counter dùng font monospace để số không nhảy khi thay đổi */
+    .counter {
+      margin-top: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--clr-muted);
+      letter-spacing: 0.02em;
+    }
+
+    /* Số nổi bật bằng màu accent */
+    .counter span {
+      color: var(--clr-accent);
+      font-weight: 500;
+    }
+
+    /* ============================================
+       Ô NHẬP TASK MỚI
+    ============================================ */
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .input-row input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1.5px solid var(--clr-border);
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 0.95rem;
+      color: var(--clr-text);
+      background: var(--clr-surface);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    /* Viền sáng lên khi focus */
+    .input-row input:focus {
+      border-color: var(--clr-accent);
+      box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+    }
+
+    .input-row input::placeholder {
+      color: var(--clr-done);
+    }
+
+    /* Nút "Thêm" */
+    .btn-add {
+      padding: 12px 20px;
+      background: var(--clr-accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s, transform .1s, box-shadow .15s;
+    }
+
+    .btn-add:hover {
+      background: var(--clr-accent-h);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .btn-add:active {
+      transform: scale(0.97);
+    }
+
+    /* ============================================
+       DANH SÁCH TASK
+    ============================================ */
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Card mỗi task */
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--clr-surface);
+      border: 1.5px solid var(--clr-border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      box-shadow: var(--shadow);
+      /* Animation khi task mới được thêm */
+      animation: slideIn .22s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============================================
+       CHECKBOX TÙY CHỈNH (Signature Element)
+       — checkbox ẩn, thay bằng div giả
+    ============================================ */
+    .task-checkbox {
+      position: relative;
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    /* Input gốc ẩn đi */
+    .task-checkbox input[type="checkbox"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    /* Ô vuông tùy chỉnh */
+    .task-checkbox .check-box {
+      position: absolute;
+      inset: 0;
+      border: 2px solid var(--clr-border);
+      border-radius: 6px;
+      background: var(--clr-surface);
+      transition: border-color .2s, background .2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Dấu tick SVG (ẩn mặc định) */
+    .task-checkbox .check-box svg {
+      width: 12px;
+      height: 12px;
+      stroke: #fff;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: opacity .18s, transform .18s;
+    }
+
+    /* Khi checkbox được tick */
+    .task-checkbox input:checked + .check-box {
+      background: var(--clr-accent);
+      border-color: var(--clr-accent);
+    }
+
+    .task-checkbox input:checked + .check-box svg {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* ============================================
+       TÊN TASK VÀ HIỆU ỨNG GẠH NGANG
+    ============================================ */
+    .task-title {
+      flex: 1;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      color: var(--clr-text);
+      /* Hiệu ứng gạch ngang dùng text-decoration */
+      text-decoration: none;
+      position: relative;
+      transition: color .25s;
+      /* Gạch ngang tùy chỉnh phía sau text */
+    }
+
+    /* Đường gạch ngang tùy chỉnh */
+    .task-title::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      width: 0%;        /* Bắt đầu từ 0 */
+      height: 1.5px;
+      background: var(--clr-done);
+      transition: width .3s ease;  /* Mượt mà khi tick */
+    }
+
+    /* Khi task đã hoàn thành: chữ mờ + gạch ngang trải ra full */
+    .task-item.completed .task-title {
+      color: var(--clr-done);
+    }
+
+    .task-item.completed .task-title::after {
+      width: 100%;
+    }
+
+    /* ============================================
+       NÚT XÓA
+    ============================================ */
+    .btn-delete {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      color: var(--clr-border);
+      transition: color .15s, background .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .btn-delete:hover {
+      color: var(--clr-danger);
+      background: rgba(239,68,68,.08);
+    }
+
+    .btn-delete svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* ============================================
+       TRẠNG THÁI RỖNG (Không có task nào)
+    ============================================ */
+    .empty-state {
+      text-align: center;
+      padding: 48px 0;
+      color: var(--clr-muted);
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      stroke: var(--clr-border);
+      margin-bottom: 12px;
+    }
+
+    .empty-state p {
+      font-size: 0.9rem;
+    }
+
+    /* ============================================
+       THÔNG BÁO LỖI / LOADING
+    ============================================ */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1F2937;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: transform .3s ease, opacity .3s;
+      z-index: 999;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .toast.error {
+      background: var(--clr-danger);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- ==========================================
+         TIÊU ĐỀ & COUNTER
+    =========================================== -->
+    <div class="header">
+      <h1>Công việc hôm nay</h1>
+      <!-- Counter hiển thị số task còn lại / tổng -->
+      <p class="counter">
+        Còn lại <span id="remaining">0</span> / <span id="total">0</span> việc
+      </p>
+    </div>
+
+    <!-- ==========================================
+         Ô NHẬP + NÚT THÊM TASK
+    =========================================== -->
+    <div class="input-row">
+      <input
+        type="text"
+        id="taskInput"
+        placeholder="Thêm công việc mới..."
+        maxlength="200"
+        autocomplete="off"
+      />
+      <button class="btn-add" id="addBtn">Thêm</button>
+    </div>
+
+    <!-- ==========================================
+         DANH SÁCH TASK
+    =========================================== -->
+    <ul class="task-list" id="taskList">
+      <!-- Task sẽ được render động bằng JavaScript -->
+    </ul>
+
+  </div>
+
+  <!-- Toast thông báo lỗi / thành công -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ==============================================
+    // CÁC HẰNG SỐ & BIẾN TOÀN CỤC
+    // ==============================================
+
+    // URL gốc của API backend
+    const API_BASE = '/api/tasks';
+
+    // Lưu danh sách task trong bộ nhớ để tránh gọi API liên tục
+    let tasks = [];
+
+    // Tham chiếu các phần tử DOM dùng nhiều lần
+    const taskList   = document.getElementById('taskList');
+    const taskInput  = document.getElementById('taskInput');
+    const addBtn     = document.getElementById('addBtn');
+    const remaining  = document.getElementById('remaining');
+    const total      = document.getElementById('total');
+    const toast      = document.getElementById('toast');
+
+    // ==============================================
+    // TIỆN ÍCH: TOAST THÔNG BÁO
+    // ==============================================
+    let toastTimer;
+
+    /**
+     * Hiện toast thông báo ở dưới màn hình
+     * @param {string} msg  - Nội dung thông báo
+     * @param {boolean} isError - true = đỏ (lỗi), false = xám (bình thường)
+     */
+    function showToast(msg, isError = false) {
+      clearTimeout(toastTimer);
+      toast.textContent = msg;
+      toast.className = 'toast show' + (isError ? ' error' : '');
+      toastTimer = setTimeout(() => {
+        toast.className = 'toast';
+      }, 2800);
+    }
+
+    // ==============================================
+    // CẬP NHẬT COUNTER
+    // ==============================================
+    function updateCounter() {
+      const done = tasks.filter(t => t.completed).length;
+      remaining.textContent = tasks.length - done;
+      total.textContent = tasks.length;
+    }
+
+    // ==============================================
+    // RENDER MỘT TASK THÀNH HTML
+    // ==============================================
+    /**
+     * Tạo element <li> cho một task
+     * @param {Object} task - Đối tượng task { id, title, completed }
+     */
+    function createTaskElement(task) {
+      const li = document.createElement('li');
+      li.className = 'task-item' + (task.completed ? ' completed' : '');
+      li.dataset.id = task.id;
+
+      li.innerHTML = `
+        <!-- Checkbox tùy chỉnh -->
+        <label class="task-checkbox" title="${task.completed ? 'Đánh dấu chưa xong' : 'Đánh dấu hoàn thành'}">
+          <input type="checkbox" ${task.completed ? 'checked' : ''} />
+          <span class="check-box">
+            <!-- Dấu tick SVG -->
+            <svg viewBox="0 0 12 12" fill="none">
+              <polyline points="1.5,6 4.5,9 10.5,3" />
+            </svg>
+          </span>
+        </label>
+
+        <!-- Tên task -->
+        <span class="task-title">${escapeHtml(task.title)}</span>
+
+        <!-- Nút xóa -->
+        <button class="btn-delete" title="Xóa công việc này">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M2 4h12M6 4V2h4v2M5 4l.5 9h5L11 4"/>
+          </svg>
+        </button>
+      `;
+
+      // Sự kiện tick checkbox → gọi API PATCH
+      const checkbox = li.querySelector('input[type="checkbox"]');
+      checkbox.addEventListener('change', () => toggleTask(task.id, checkbox.checked));
+
+      // Sự kiện nút xóa → gọi API DELETE
+      const deleteBtn = li.querySelector('.btn-delete');
+      deleteBtn.addEventListener('click', () => deleteTask(task.id));
+
+      return li;
+    }
+
+    // ==============================================
+    // RENDER TOÀN BỘ DANH SÁCH TASK
+    // ==============================================
+    function renderTasks() {
+      taskList.innerHTML = '';
+
+      if (tasks.length === 0) {
+        // Hiện trạng thái rỗng nếu không có task nào
+        taskList.innerHTML = `
+          <div class="empty-state">
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <rect x="8" y="8" width="32" height="36" rx="4"/>
+              <line x1="16" y1="20" x2="32" y2="20"/>
+              <line x1="16" y1="28" x2="28" y2="28"/>
+            </svg>
+            <p>Chưa có công việc nào.<br/>Thêm việc đầu tiên của bạn!</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Thêm từng task vào danh sách
+      tasks.forEach(task => {
+        taskList.appendChild(createTaskElement(task));
+      });
+
+      updateCounter();
+    }
+
+    // ==============================================
+    // API CALLS — Giao tiếp với Backend
+    // ==============================================
+
+    /**
+     * Tải danh sách task từ server khi khởi động trang
+     */
+    async function loadTasks() {
+      try {
+        const res = await fetch(API_BASE);
+        if (!res.ok) throw new Error('Không thể tải danh sách');
+        tasks = await res.json();
+        renderTasks();
+        updateCounter();
+      } catch (err) {
+        showToast('Lỗi kết nối server. Vui lòng thử lại.', true);
+        console.error('loadTasks:', err);
+      }
+    }
+
+    /**
+     * Thêm task mới — gọi POST /api/tasks
+     */
+    async function addTask() {
+      const title = taskInput.value.trim();
+
+      // Không làm gì nếu ô trống
+      if (!title) {
+        taskInput.focus();
+        return;
+      }
+
+      // Vô hiệu nút tạm thời để tránh bấm nhiều lần
+      addBtn.disabled = true;
+      addBtn.textContent = 'Đang thêm...';
+
+      try {
+        const res = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Lỗi không xác định');
+        }
+
+        const newTask = await res.json();
+
+        // Thêm vào đầu mảng để hiển thị mới nhất ở trên
+        tasks.unshift(newTask);
+        renderTasks();
+
+        // Xóa ô nhập và focus lại để nhập tiếp
+        taskInput.value = '';
+        taskInput.focus();
+
+      } catch (err) {
+        showToast('Thêm thất bại: ' + err.message, true);
+        console.error('addTask:', err);
+      } finally {
+        // Khôi phục nút dù thành công hay lỗi
+        addBtn.disabled = false;
+        addBtn.textContent = 'Thêm';
+      }
+    }
+
+    /**
+     * Cập nhật trạng thái hoàn thành — gọi PATCH /api/tasks/:id
+     * @param {number} id        - ID của task
+     * @param {boolean} completed - Trạng thái mới
+     */
+    async function toggleTask(id, completed) {
+      try {
+        const res = await fetch(`${API_BASE}/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ completed })
+        });
+
+        if (!res.ok) throw new Error('Không thể cập nhật');
+
+        // Cập nhật mảng local và render lại
+        tasks = tasks.map(t => t.id === id ? { ...t, completed } : t);
+        renderTasks();
+
+      } catch (err) {
+        showToast('Cập nhật thất bại. Thử lại.', true);
+        console.error('toggleTask:', err);
+        // Render lại để đồng bộ UI với trạng thái cũ
+        renderTasks();
+      }
+    }
+
+    /**
+     * Xóa task — gọi DELETE /api/tasks/:id
+     * @param {number} id - ID của task cần xóa
+     */
+    async function deleteTask(id) {
+      try {
+        const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Không thể xóa');
+
+        // Loại task khỏi mảng local
+        tasks = tasks.filter(t => t.id !== id);
+        renderTasks();
+
+      } catch (err) {
+        showToast('Xóa thất bại. Thử lại.', true);
+        console.error('deleteTask:', err);
+      }
+    }
+
+    // ==============================================
+    // TIỆN ÍCH: Thoát ký tự HTML để tránh XSS
+    // ==============================================
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ==============================================
+    // GẮN SỰ KIỆN
+    // ==============================================
+
+    // Bấm nút "Thêm"
+    addBtn.addEventListener('click', addTask);
+
+    // Nhấn Enter trong ô input cũng thêm task
+    taskInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') addTask();
+    });
+
+    // ==============================================
+    // KHỞI ĐỘNG: Tải danh sách khi mở trang
+    // ==============================================
+    loadTasks();
+  </script>
+</body>
+</html>
